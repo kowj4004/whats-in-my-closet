@@ -1,0 +1,15 @@
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# secrets
+backend/.env
+
+# runtime data / user content — not source code
+backend/data/
+backend/uploads/
+
+# build output
+frontend/dist/
+
+*.log

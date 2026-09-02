@@ -1,0 +1,20 @@
+{
+  "name": "closet-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "What's in My Closet - backend API server",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.1",
+    "@google/generative-ai": "^0.21.0"
+  }
+}
