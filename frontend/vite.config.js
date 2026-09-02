@@ -7,6 +7,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: true, // 같은 Wi-Fi의 다른 기기(휴대폰 등)에서도 접속할 수 있도록 허용
+    // Cloudflare Quick Tunnel(trycloudflare.com)로 외부 공개 시 Host 헤더 검증을 통과시키기 위함.
+    // 매번 랜덤 서브도메인이 발급되므로 도메인 전체를 허용한다.
+    allowedHosts: [".trycloudflare.com"],
     proxy: {
       "/api": {
         target: "http://localhost:4000",
