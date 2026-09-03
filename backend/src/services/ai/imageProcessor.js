@@ -4,14 +4,16 @@
 // resolveProvider()에서 분기만 추가하면 된다.
 
 import { geminiRemoveBackground } from "./providers/geminiProvider.js";
+import { localRemoveBackground } from "./providers/localImageProvider.js";
 import { noopRemoveBackground } from "./providers/noopProvider.js";
 
 function resolveProvider() {
   const configured = (process.env.AI_IMAGE_PROVIDER || "").toLowerCase();
   if (configured === "gemini") return "gemini";
+  if (configured === "local") return "local";
   if (configured === "noop") return "noop";
-  // 명시적 설정이 없으면 API 키 존재 여부로 자동 판단
-  return process.env.GEMINI_API_KEY ? "gemini" : "noop";
+  // 명시적 설정이 없으면 과금/할당량 걱정 없는 로컬 오픈소스 모델을 기본으로 사용
+  return "local";
 }
 
 /**
@@ -31,6 +33,21 @@ export async function processClothingImage(buffer, mimeType) {
       processed: false,
       message: "AI 이미지 정리가 설정되어 있지 않아 원본 이미지를 그대로 사용합니다.",
     };
+  }
+
+  if (provider === "local") {
+    try {
+      const result = await localRemoveBackground(buffer, mimeType);
+      return { ...result, processed: true, message: "로컬 AI 모델이 배경을 정리했습니다." };
+    } catch (err) {
+      console.error("[imageProcessor] 로컬 배경 제거 실패, 원본 이미지로 폴백:", err.message);
+      const fallback = await noopRemoveBackground(buffer, mimeType);
+      return {
+        ...fallback,
+        processed: false,
+        message: `배경 정리에 실패하여 원본 이미지를 사용합니다. (${err.message})`,
+      };
+    }
   }
 
   try {

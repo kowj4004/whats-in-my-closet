@@ -64,6 +64,12 @@ export default function OutfitDetail() {
         <div className="outfit-detail-card">
           <h1 className="page-title">{outfit.name || "이름 없는 코디"}</h1>
 
+          {outfit.image && (
+            <div className="detail-image-wrap outfit-detail-hero">
+              <img src={outfit.image} alt={outfit.name || "코디"} className="detail-image" />
+            </div>
+          )}
+
           <div className="outfit-detail-items">
             {outfit.items.map((item) => (
               <Link

@@ -46,7 +46,7 @@ export async function getOutfit(id) {
   return all.find((o) => o.id === id) || null;
 }
 
-export async function createOutfit({ name, itemIds }) {
+export async function createOutfit({ name, itemIds, image }) {
   return enqueue(async () => {
     const all = await readAll();
     const now = new Date().toISOString();
@@ -54,6 +54,7 @@ export async function createOutfit({ name, itemIds }) {
       id: randomUUID(),
       name: name || "",
       itemIds,
+      image: image || "",
       createdAt: now,
       updatedAt: now,
     };

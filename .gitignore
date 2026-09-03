@@ -12,4 +12,7 @@ backend/uploads/
 # build output
 frontend/dist/
 
+# tesseract.js가 첫 실행 시 자동으로 내려받는 OCR 언어 모델 캐시
+backend/*.traineddata
+
 *.log

@@ -539,60 +539,23 @@ button {
   box-shadow: 0 0 0 2px rgba(28, 27, 26, 0.12);
 }
 
-/* 코디 카드 (여러 아이템 콜라주) */
-.outfit-card {
-  display: block;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  text-decoration: none;
-  color: var(--color-text);
-  box-shadow: var(--shadow-card);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.outfit-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(28, 27, 26, 0.1);
-}
-
-.outfit-card-collage {
-  aspect-ratio: 3 / 4;
-  background: #f1efec;
-  display: grid;
-  gap: 2px;
-}
-
-.outfit-card-collage-1 {
-  grid-template-columns: 1fr;
-}
-
-.outfit-card-collage-2 {
-  grid-template-columns: 1fr 1fr;
-}
-
-.outfit-card-collage-3,
-.outfit-card-collage-4 {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-}
-
-.outfit-card-collage-cell {
-  overflow: hidden;
-}
-
-.outfit-card-collage-cell img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 /* 코디 상세 */
 .outfit-detail-card {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.outfit-detail-hero {
+  max-width: 480px;
+  aspect-ratio: auto; /* 코디 아이템 수에 따라 합성 이미지 비율이 달라짐(정사각형~가로로 긴 형태) */
+  background: #f1efec;
+}
+
+.outfit-detail-hero .detail-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain; /* 잘리지 않고 합성 이미지 전체가 보이도록 */
 }
 
 .outfit-detail-items {
