@@ -4,6 +4,9 @@
 사용자가 하루에 한 번 정도 세션을 열어 기능을 조금씩 추가하며 발전시키는 프로젝트다. 매 세션마다
 이 파일부터 읽고 시작하면 코드베이스를 처음부터 다시 탐색하지 않아도 된다.
 
+GitHub: https://github.com/kowj4004/whats-in-my-closet (public, origin으로 연결되어 있음).
+`git push`는 매 세션 커밋 후 자동으로 하지 않는다 — 사용자가 명시적으로 요청했을 때만 push한다.
+
 ## 서버 실행
 
 가장 빠른 방법: `mcp__Claude_Browser__preview_start`를 `name: "dev"`로 호출한다
