@@ -132,14 +132,19 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
 - `server.js`에 `frontend/dist` 정적 서빙 + SPA 폴백 추가(배포 시 프론트/백엔드를 한 Render Web Service로
   합쳐서 서빙하기 위함). 로컬 개발에는 영향 없음(dist가 없으면 그냥 건너뜀).
 
+- **이미지 저장소도 Supabase Storage로 이전 완료.** `backend/src/services/storage/`가 스위처
+  (`index.js`) + `localStorage.js`(개발 기본값) + `supabaseStorage.js`(SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY
+  있을 때) 구조. `imageFile.js`(옷 사진)와 `outfitComposer.js`(코디 합성)가 전부 이 계층을 통해서만
+  파일을 읽고/쓰고/지운다 — 둘 다 더 이상 `fs`/`UPLOAD_DIR`을 직접 건드리지 않는다.
+  버킷은 `closet-images`(public)로 만들어뒀다. 기존 로컬 이미지 4개(옷 3개 + 코디 합성 1개)는
+  `npm run migrate:uploads --prefix backend`로 옮기고 DB의 image URL도 갱신함, 로컬 원본은 삭제.
+  create/delete를 실제 API로 재검증(업로드→공개 URL 200 확인→삭제→404 확인)함.
+
 **남은 작업**:
-1. **이미지 저장소 이전** — 지금 옷/코디 사진은 `backend/uploads/`(로컬 디스크)에 저장되는데,
-   Render 무료 웹서비스는 파일시스템이 ephemeral이라 재배포/재시작 때마다 사진이 전부 사라진다.
-   Supabase Storage(무료 티어, 이미 계정 있음)로 옮겨야 함 — `imageFile.js`, `outfitComposer.js`가
-   로컬 파일 대신 Supabase Storage에 업로드하고 공개 URL을 돌려주도록 수정 필요. **이걸 하기 전에는
-   Render에 배포해도 사진이 안정적으로 유지되지 않으므로, 다음 세션에서 최우선으로 처리할 것.**
-2. Render Web Service 설정값 확정 및 실제 배포(아래 참고), 환경변수 등록(GEMINI_API_KEY,
-   AI_IMAGE_PROVIDER=local, AI_OCR_PROVIDER=local, DATABASE_URL, 그리고 1번이 끝나면 Supabase Storage 키).
+1. Render Web Service 설정값 확정 및 실제 배포(아래 참고), 환경변수 등록(GEMINI_API_KEY,
+   AI_IMAGE_PROVIDER=local, AI_OCR_PROVIDER=local, DATABASE_URL, SUPABASE_URL,
+   SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET=closet-images).
+2. 배포 후 실제 공개 URL로 접속해서 전체 플로우(카테고리/등록/코디) 한 번 더 확인.
 
 **Render 설정 참고값** (Root Directory는 리포 루트로 비워둠):
 - Build Command: `npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend`
