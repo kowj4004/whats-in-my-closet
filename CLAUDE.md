@@ -1,6 +1,7 @@
 # What's in My Closet
 
-개인 옷장 관리 웹앱. Node/Express 백엔드 + React/Vite 프론트엔드, JSON 파일 기반 저장(DB 서버 없음).
+개인 옷장 관리 웹앱. Node/Express 백엔드 + React/Vite 프론트엔드. 저장소는 `DATABASE_URL`이 있으면
+Postgres(Supabase), 없으면 로컬 JSON 파일(개발용 기본값).
 사용자가 하루에 한 번 정도 세션을 열어 기능을 조금씩 추가하며 발전시키는 프로젝트다. 매 세션마다
 이 파일부터 읽고 시작하면 코드베이스를 처음부터 다시 탐색하지 않아도 된다.
 
@@ -26,8 +27,12 @@ GitHub: https://github.com/kowj4004/whats-in-my-closet (public, origin으로 연
 ```
 backend/src/config/categories.json   카테고리 목록. 코드 수정 없이 이 파일만 편집하면
                                       카테고리 추가/변경/순서변경 가능. (현재: 상의/하의/악세사리/신발)
-backend/src/db/*.js                  JSON 파일 기반 저장소. list/get/create/update/remove 인터페이스.
-                                      clothesStore.js, outfitsStore.js
+backend/src/db/clothesStore.js       스위처. DATABASE_URL 있으면 pgClothesStore, 없으면 jsonClothesStore로
+backend/src/db/outfitsStore.js       위임한다(둘 다 동일한 list/get/create/update/remove 인터페이스).
+backend/src/db/pg*.js                Postgres(Supabase) 구현. postgresPool.js가 연결 풀, migrate.js가
+                                      테이블 생성(서버 시작 시 자동 실행).
+backend/src/db/json*.js              로컬 파일 기반 구현(기존 방식, 개발 편의용 기본값).
+backend/scripts/migrate-json-to-postgres.js   JSON→Postgres 1회성 데이터 이전 스크립트(id 보존).
 backend/src/routes/*.js              Express 라우터: categories, clothes, outfits, ai
 backend/src/services/ai/             AI 기능 진입점(imageProcessor.js=배경정리, ocrExtractor.js=정보추출)
                                       + providers/(geminiProvider.js, noopProvider.js) — provider 교체 가능한 구조.
@@ -113,15 +118,36 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
 ## 진행 중: PC 상태와 무관한 24/7 배포 (2026-09-03~)
 
 목표: 로그인 없이(멀티유저/인증은 더 나중), 지금 있는 기능 그대로를 사용자의 PC가 꺼져 있어도
-항상 접속 가능한 실제 호스팅에 올리는 것. 계정 생성/결제 정보 입력은 Claude가 대신 할 수 없는
-행동이라(정책상 금지) 사용자가 직접 가입해야 한다.
+항상 접속 가능한 실제 호스팅에 올리는 것.
 
-- 사용자에게 요청한 것: **Render**(백엔드 호스팅, 카드 없이 가입 가능)와 **Supabase**(영구 Postgres
-  DB, 카드 없이 가입 가능) 계정을 이메일/깃허브로 직접 생성.
-- 이 세션이 그동안 준비해둘 것: JSON 파일 저장소(clothesStore.js/outfitsStore.js)를 Postgres로
-  교체할 수 있게 DB 어댑터화, 이미지 업로드 경로를 Render의 ephemeral 파일시스템에 의존하지 않는
-  방식으로 정리, 배포용 환경변수/빌드 스크립트 정리.
-- 장기적으로는(사용자가 나중에 요청하면) 로그인/멀티유저까지 확장 — 그때 후보 A/B/C안:
+**완료(2026-09-05)**:
+- GitHub 저장소 연결: https://github.com/kowj4004/whats-in-my-closet (origin, push는 명시적 요청 시에만)
+- Supabase 프로젝트 생성 + Postgres 연동 완료. **주의**: Supabase의 직접 연결 호스트(`db.<ref>.supabase.co`)는
+  IPv6 전용이라 이 개발 환경(및 Render 등 IPv4 환경)에서 DNS는 되지만 연결이 안 될 수 있다 —
+  반드시 **Session/Transaction Pooler** 연결 문자열(`aws-0-<region>.pooler.supabase.com`, 사용자명이
+  `postgres.<project-ref>` 형태)을 써야 한다. `.env`의 `DATABASE_URL`이 이미 pooler 방식으로 설정됨.
+- DB 어댑터화 완료: `clothesStore.js`/`outfitsStore.js`가 `DATABASE_URL` 유무로 json/pg 구현을 스위칭.
+  기존 JSON 데이터(옷 3개, 코디 1개)는 `npm run migrate:data --prefix backend`로 id 보존한 채 이전 완료,
+  실제 API(create/update/delete)로 재검증함.
+- `server.js`에 `frontend/dist` 정적 서빙 + SPA 폴백 추가(배포 시 프론트/백엔드를 한 Render Web Service로
+  합쳐서 서빙하기 위함). 로컬 개발에는 영향 없음(dist가 없으면 그냥 건너뜀).
+
+**남은 작업**:
+1. **이미지 저장소 이전** — 지금 옷/코디 사진은 `backend/uploads/`(로컬 디스크)에 저장되는데,
+   Render 무료 웹서비스는 파일시스템이 ephemeral이라 재배포/재시작 때마다 사진이 전부 사라진다.
+   Supabase Storage(무료 티어, 이미 계정 있음)로 옮겨야 함 — `imageFile.js`, `outfitComposer.js`가
+   로컬 파일 대신 Supabase Storage에 업로드하고 공개 URL을 돌려주도록 수정 필요. **이걸 하기 전에는
+   Render에 배포해도 사진이 안정적으로 유지되지 않으므로, 다음 세션에서 최우선으로 처리할 것.**
+2. Render Web Service 설정값 확정 및 실제 배포(아래 참고), 환경변수 등록(GEMINI_API_KEY,
+   AI_IMAGE_PROVIDER=local, AI_OCR_PROVIDER=local, DATABASE_URL, 그리고 1번이 끝나면 Supabase Storage 키).
+
+**Render 설정 참고값** (Root Directory는 리포 루트로 비워둠):
+- Build Command: `npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend`
+- Start Command: `npm start --prefix backend`
+- 참고: 루트 `package.json`의 `install:all`/`dev`는 로컬 동시 실행용(concurrently)이라 배포에는 안 씀 —
+  배포는 프론트를 빌드해서 백엔드가 정적으로 서빙하는 단일 서비스 구조.
+
+장기적으로는(사용자가 나중에 요청하면) 로그인/멀티유저까지 확장 — 그때 후보 A/B/C안:
   - **A안(Supabase/Firebase 등 BaaS)**: 인증+DB+스토리지 통합, 가장 빠르지만 백엔드 절반 리라이트.
   - **B안(지금 구조 유지, 현재 진행 중인 방향과 가장 가까움)**: Express·store 패턴 유지, DB만 Postgres로
     교체 + 인증만 나중에 별도 추가(Clerk 등).
