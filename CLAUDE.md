@@ -115,10 +115,14 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
 - tesseract.js가 첫 실행 시 언어 데이터(`backend/*.traineddata`)를 자동으로 내려받아 backend
   루트에 캐시한다 — git에는 안 올라감(.gitignore 처리).
 
-## 진행 중: PC 상태와 무관한 24/7 배포 (2026-09-03~)
+## PC 상태와 무관한 24/7 배포 완료 (2026-09-03~2026-09-05)
 
-목표: 로그인 없이(멀티유저/인증은 더 나중), 지금 있는 기능 그대로를 사용자의 PC가 꺼져 있어도
+목표(달성함): 로그인 없이(멀티유저/인증은 더 나중), 지금 있는 기능 그대로를 사용자의 PC가 꺼져 있어도
 항상 접속 가능한 실제 호스팅에 올리는 것.
+
+**배포 주소: https://whats-in-my-closet-1.onrender.com** (Render, Oregon 리전, 무료 티어).
+배포 후 실제 공개 URL에서 카테고리/등록된 옷/코디 페이지를 데스크톱·모바일 뷰포트 모두 확인 완료.
+무료 티어라 15분 이상 미접속 시 슬립되고, 첫 요청은 최대 50초 정도 걸릴 수 있음(Render 안내 문구).
 
 **완료(2026-09-05)**:
 - GitHub 저장소 연결: https://github.com/kowj4004/whats-in-my-closet (origin, push는 명시적 요청 시에만)
@@ -140,11 +144,9 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
   `npm run migrate:uploads --prefix backend`로 옮기고 DB의 image URL도 갱신함, 로컬 원본은 삭제.
   create/delete를 실제 API로 재검증(업로드→공개 URL 200 확인→삭제→404 확인)함.
 
-**남은 작업**:
-1. Render Web Service 설정값 확정 및 실제 배포(아래 참고), 환경변수 등록(GEMINI_API_KEY,
-   AI_IMAGE_PROVIDER=local, AI_OCR_PROVIDER=local, DATABASE_URL, SUPABASE_URL,
-   SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET=closet-images).
-2. 배포 후 실제 공개 URL로 접속해서 전체 플로우(카테고리/등록/코디) 한 번 더 확인.
+**남은 작업**: 없음(이번 라운드 기준). 앞으로 기능을 추가하면 git push 후 Render가 자동으로
+재배포한다(Render는 GitHub 저장소를 연결해뒀으므로 push = 배포 트리거). 로그인/멀티유저는
+사용자가 나중에 요청하면 아래 장기 로드맵 A/B/C안 중 하나로 진행.
 
 **Render 설정 참고값** (Root Directory는 리포 루트로 비워둠):
 - Build Command: `npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend`
