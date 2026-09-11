@@ -7,6 +7,7 @@ import ClothDetail from "./pages/ClothDetail.jsx";
 import OutfitListView from "./pages/OutfitListView.jsx";
 import OutfitDetail from "./pages/OutfitDetail.jsx";
 import Login from "./pages/Login.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 
 function HeaderAuth() {
   const { user, signOut } = useAuth();
@@ -34,6 +35,7 @@ export default function App() {
         <main className="app-main">
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/"
               element={

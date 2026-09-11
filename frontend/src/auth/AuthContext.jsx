@@ -38,6 +38,28 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   }
 
+  /** 비밀번호 재설정 메일을 보낸다. 메일 속 링크를 누르면 /reset-password로 돌아온다. */
+  async function resetPassword(email) {
+    setError("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      setError(error.message);
+      throw error;
+    }
+  }
+
+  /** 재설정 메일 링크를 눌러 들어온 상태(임시 세션)에서 새 비밀번호로 교체한다. */
+  async function updatePassword(newPassword) {
+    setError("");
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setError(error.message);
+      throw error;
+    }
+  }
+
   const value = {
     session,
     user: session?.user ?? null,
@@ -46,6 +68,8 @@ export function AuthProvider({ children }) {
     signUp,
     signIn,
     signOut,
+    resetPassword,
+    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

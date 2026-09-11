@@ -101,6 +101,22 @@ button {
   margin: 40px auto 0;
 }
 
+.login-forgot-link {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  margin-top: -6px;
+}
+
+.login-forgot-link:hover {
+  color: var(--color-text);
+}
+
 .app-main {
   flex: 1;
   width: 100%;
