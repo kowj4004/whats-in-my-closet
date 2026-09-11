@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { upload } from "../middleware/upload.js";
+import { requireAuth } from "../middleware/auth.js";
 import { finalizeUploadedImage, removeImageByUrl } from "../services/imageFile.js";
 import { getCategory } from "../db/categoriesStore.js";
 import {
@@ -11,6 +12,7 @@ import {
 } from "../db/clothesStore.js";
 
 const router = Router();
+router.use(requireAuth); // 이 아래 전부 로그인한 사용자만, 자기 옷만 다룬다
 
 // 데이터 구조상 필수로 관리하는 "코어" 필드. 그 외 필드는 자유롭게 추가로 저장된다.
 const CORE_FIELDS = ["store", "size", "price", "memo"];
@@ -33,7 +35,7 @@ function normalizePrice(value) {
 router.get("/", async (req, res, next) => {
   try {
     const { category } = req.query;
-    const items = await listClothes({ category: category || undefined });
+    const items = await listClothes({ category: category || undefined, userId: req.userId });
     res.json(items);
   } catch (err) {
     next(err);
@@ -42,7 +44,7 @@ router.get("/", async (req, res, next) => {
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const item = await getCloth(req.params.id);
+    const item = await getCloth(req.params.id, req.userId);
     if (!item) return res.status(404).json({ error: "옷 정보를 찾을 수 없습니다." });
     res.json(item);
   } catch (err) {
@@ -67,6 +69,7 @@ router.post("/", upload.single("image"), async (req, res, next) => {
     const { imageUrl, processed, message } = await finalizeUploadedImage(req.file);
 
     const item = await createCloth({
+      userId: req.userId,
       category,
       image: imageUrl,
       store: req.body.store || "",
@@ -84,7 +87,7 @@ router.post("/", upload.single("image"), async (req, res, next) => {
 
 router.put("/:id", upload.single("image"), async (req, res, next) => {
   try {
-    const existing = await getCloth(req.params.id);
+    const existing = await getCloth(req.params.id, req.userId);
     if (!existing) return res.status(404).json({ error: "옷 정보를 찾을 수 없습니다." });
 
     if (req.body.category) {
@@ -109,7 +112,7 @@ router.put("/:id", upload.single("image"), async (req, res, next) => {
       await removeImageByUrl(existing.image);
     }
 
-    const updated = await updateCloth(req.params.id, patch);
+    const updated = await updateCloth(req.params.id, patch, req.userId);
     res.json({ item: updated, aiImageProcessing });
   } catch (err) {
     next(err);
@@ -118,9 +121,9 @@ router.put("/:id", upload.single("image"), async (req, res, next) => {
 
 router.delete("/:id", async (req, res, next) => {
   try {
-    const existing = await getCloth(req.params.id);
+    const existing = await getCloth(req.params.id, req.userId);
     if (!existing) return res.status(404).json({ error: "옷 정보를 찾을 수 없습니다." });
-    await deleteCloth(req.params.id);
+    await deleteCloth(req.params.id, req.userId);
     await removeImageByUrl(existing.image);
     res.status(204).end();
   } catch (err) {

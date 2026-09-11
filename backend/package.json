@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "migrate:data": "node scripts/migrate-json-to-postgres.js",
-    "migrate:uploads": "node scripts/migrate-uploads-to-supabase.js"
+    "migrate:uploads": "node scripts/migrate-uploads-to-supabase.js",
+    "assign:orphan-data": "node scripts/assign-orphan-data-to-user.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

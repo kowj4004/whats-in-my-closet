@@ -40,10 +40,14 @@ backend/src/services/ai/             AI 기능 진입점(imageProcessor.js=배�
 backend/data/*.json                  실제 데이터(git 추적 안 함). clothes.json, outfits.json
 backend/uploads/                     업로드된 옷 사진 원본(git 추적 안 함)
 
-frontend/src/pages/                  Home, CategoryView, ClothDetail, OutfitListView, OutfitDetail
+frontend/src/pages/                  Home, CategoryView, ClothDetail, OutfitListView, OutfitDetail, Login
 frontend/src/components/             ClothCard/Grid, ManualEntryForm, CaptureOcrEntry(AI OCR),
                                       AddClothModal, OutfitBuilder/Modal/Card/Grid
-frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 통해서만 (fetch 직접 호출 금지)
+frontend/src/auth/                   AuthContext.jsx(로그인 상태 전역 관리) + ProtectedRoute.jsx
+frontend/src/lib/supabaseClient.js   프론트용 Supabase 클라이언트(anon 키, 로그인 전용 — 데이터는 여전히
+                                      /api/...를 거침)
+frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 통해서만 (fetch 직접 호출 금지).
+                                      모든 요청에 authFetch()가 Supabase 세션 토큰을 자동으로 붙인다.
 ```
 
 **코디(outfit)는 일반 옷과 완전히 다른 데이터 모델이다.** 새 사진을 올리는 게 아니라, 이미 등록된
@@ -51,12 +55,41 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
 이미지 등 실제 정보를 채워서 응답한다(`routes/outfits.js`의 `withItems`). 옷 카테고리 시스템
 (categories.json)에는 outfit이 포함되어 있지 않다 — 완전히 별도 라우트/페이지(`/outfits`)로 분리되어 있다.
 
+## 로그인 (Supabase Auth, 2026-09-11 도입)
+
+**컨셉**: 지금은 개인용 도구지만, 궁극적으로는 자기 옷장을 남에게 공개/게시하는 SNS적 성격을 
+지향한다. 그래서 로그인을 "일단 막기용"이 아니라 "소유권(user_id) + 공개여부(is_public)"가 
+처음부터 데이터에 붙어있는 구조로 만들었다 — 나중에 공개 피드를 만들 때 스키마를 다시 안 바꿔도 되게.
+
+- **인증 제공자**: Supabase Auth(이메일/비밀번호). 이미 DB/Storage로 Supabase를 쓰고 있어서
+  추가 벤더 없이 자연스럽게 확장됨. `frontend/src/lib/supabaseClient.js`가 `VITE_SUPABASE_URL`/
+  `VITE_SUPABASE_ANON_KEY`(프론트 `.env`, git 추적 안 함)로 만든 클라이언트 — 로그인/세션 관리만
+  담당하고, 실제 옷/코디 데이터는 여전히 백엔드 `/api/...`를 거친다(Supabase에 직접 쓰지 않음).
+- **프론트**: `AuthContext`(세션 상태 전역) + `ProtectedRoute`(비로그인 시 `/login`으로 리다이렉트).
+  `App.jsx`의 모든 페이지 라우트가 `ProtectedRoute`로 감싸져 있다(`/login` 제외).
+  `api/client.js`의 `authFetch()`가 매 요청마다 `supabase.auth.getSession()`으로 현재 토큰을
+  가져와 `Authorization: Bearer <token>` 헤더에 자동으로 붙인다 — 컴포넌트가 토큰을 직접 다룰 필요 없음.
+- **백엔드**: `middleware/auth.js`의 `requireAuth`가 토큰을 Supabase에 검증 요청(`auth.getUser`)해서
+  `req.userId`를 채운다. `routes/clothes.js`, `routes/outfits.js`, `routes/ai.js` 전부
+  `router.use(requireAuth)`로 보호되어 있다(`categories`는 정적 설정이라 예외). `pgClothesStore.js`/
+  `pgOutfitsStore.js`의 모든 함수가 `userId`를 받아 `WHERE user_id = $userId`로 스코프한다 —
+  다른 사람 데이터는 애초에 쿼리 결과에 안 잡힌다.
+- **DB 스키마**: `clothes`/`outfits`에 `user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE`,
+  `is_public BOOLEAN DEFAULT false` 추가(`migrate.js`). RLS도 켜뒀고(`is_public = true`인 행만
+  공개 SELECT 허용하는 정책) — 지금의 Express 백엔드(postgres 역할)에는 영향 없지만, 나중에
+  프론트가 Supabase를 직접 읽는 공개 피드를 만들 때를 대비한 사전 준비. `is_public`은 지금
+  라우트에서 실제로 쓰이진 않음(전부 기본 비공개) — 공개/게시 기능 자체는 아직 미구현.
+- **기존 데이터**: 로그인 도입 전에 만들어진 옷 3개/코디 1개는 `user_id IS NULL`(주인 없음) 상태라
+  지금은 아무한테도 안 보인다. 사용자가 실제 계정으로 가입하면
+  `node scripts/assign-orphan-data-to-user.js <이메일>` (또는 `npm run assign:orphan-data --prefix backend -- <이메일>`)로
+  그 계정에 귀속시켜야 한다 — **다음 세션에서 아직 안 했으면 먼저 확인할 것.**
+- **배포**: Render에 새로 배포하려면 `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`를 Render 환경변수에도
+  추가해야 한다(Vite는 빌드 타임에 값을 번들에 박아넣으므로, 없으면 빌드는 되지만 로그인이 깨진다).
+
 ## 알아둬야 할 이슈 / 히스토리
 
-- **Gemini 이미지 생성 모델(`gemini-2.5-flash-image`)은 사용자의 무료 티어에서 할당량 0**
-  (`limit: 0`, 429 에러) — 코드 문제가 아니라 Google 계정에 결제(Billing)가 연결 안 되어 있어서다.
-  그래서 현재 `backend/.env`에 `AI_IMAGE_PROVIDER=noop`로 꺼두었다(옷사진 자동 배경정리/크롭 비활성).
-  사용자가 결제를 연결하면 `gemini`로 바꾸기만 하면 다시 켜진다.
+- Gemini 이미지 생성 모델(`gemini-2.5-flash-image`)은 무료 티어 할당량 0 문제로 결국 로컬 오픈소스
+  모델로 완전히 대체했다(아래 "Gemini 의존도 제거" 절 참고). `AI_IMAGE_PROVIDER=local`이 현재 기본값.
 - **Gemini 텍스트 모델은 자주 deprecate된다.** 이미 한 번 `gemini-2.0-flash` → `gemini-3.6-flash`로
   교체했다(OCR 기능, `geminiProvider.js`의 `TEXT_MODEL`). 실패 시 에러 메시지에 Google이 권장하는
   대체 모델명이 그대로 나오니 그걸 반영하면 된다.

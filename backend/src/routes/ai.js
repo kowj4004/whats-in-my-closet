@@ -1,5 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
+import { requireAuth } from "../middleware/auth.js";
 import { extractClothInfo } from "../services/ai/ocrExtractor.js";
 
 // 정보 추출 전용 엔드포인트는 확정 저장 전 단계이므로 디스크에 파일을 남기지 않고
@@ -17,6 +18,7 @@ const memoryUpload = multer({
 });
 
 const router = Router();
+router.use(requireAuth);
 
 // 캡처한 이미지에서 옷 정보를 추출한다. 결과는 저장되지 않으며,
 // 프론트엔드가 사용자 확인/수정 화면에 프리필하는 용도로만 사용한다.

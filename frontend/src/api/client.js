@@ -1,6 +1,20 @@
 // 백엔드 API를 호출하는 얇은 클라이언트 레이어.
 // 컴포넌트는 fetch를 직접 다루지 않고 이 함수들만 사용한다.
 
+import { supabase } from "../lib/supabaseClient.js";
+
+async function authHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** 로그인 토큰을 자동으로 붙여주는 fetch. 옷/코디 관련 API는 전부 로그인이 필요하다. */
+async function authFetch(url, options = {}) {
+  const headers = { ...(options.headers || {}), ...(await authHeaders()) };
+  return fetch(url, { ...options, headers });
+}
+
 async function handleResponse(res) {
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
@@ -10,17 +24,18 @@ async function handleResponse(res) {
   return data;
 }
 
+// 카테고리 목록은 로그인 여부와 무관한 고정 설정값이라 인증이 필요 없다.
 export function getCategories() {
   return fetch("/api/categories").then(handleResponse);
 }
 
 export function getClothes(category) {
   const query = category ? `?category=${encodeURIComponent(category)}` : "";
-  return fetch(`/api/clothes${query}`).then(handleResponse);
+  return authFetch(`/api/clothes${query}`).then(handleResponse);
 }
 
 export function getCloth(id) {
-  return fetch(`/api/clothes/${id}`).then(handleResponse);
+  return authFetch(`/api/clothes/${id}`).then(handleResponse);
 }
 
 /**
@@ -28,36 +43,36 @@ export function getCloth(id) {
  */
 export function createCloth(fields) {
   const formData = buildFormData(fields);
-  return fetch("/api/clothes", { method: "POST", body: formData }).then(handleResponse);
+  return authFetch("/api/clothes", { method: "POST", body: formData }).then(handleResponse);
 }
 
 export function updateCloth(id, fields) {
   const formData = buildFormData(fields);
-  return fetch(`/api/clothes/${id}`, { method: "PUT", body: formData }).then(handleResponse);
+  return authFetch(`/api/clothes/${id}`, { method: "PUT", body: formData }).then(handleResponse);
 }
 
 export function deleteCloth(id) {
-  return fetch(`/api/clothes/${id}`, { method: "DELETE" }).then(handleResponse);
+  return authFetch(`/api/clothes/${id}`, { method: "DELETE" }).then(handleResponse);
 }
 
 /** 캡처한 이미지에서 옷 정보를 AI/OCR로 추출한다 (저장하지 않음). */
 export function extractClothInfo(imageFile) {
   const formData = new FormData();
   formData.append("image", imageFile);
-  return fetch("/api/ai/extract", { method: "POST", body: formData }).then(handleResponse);
+  return authFetch("/api/ai/extract", { method: "POST", body: formData }).then(handleResponse);
 }
 
 export function getOutfits() {
-  return fetch("/api/outfits").then(handleResponse);
+  return authFetch("/api/outfits").then(handleResponse);
 }
 
 export function getOutfit(id) {
-  return fetch(`/api/outfits/${id}`).then(handleResponse);
+  return authFetch(`/api/outfits/${id}`).then(handleResponse);
 }
 
 /** @param {object} fields { name, itemIds } */
 export function createOutfit(fields) {
-  return fetch("/api/outfits", {
+  return authFetch("/api/outfits", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(fields),
@@ -65,7 +80,7 @@ export function createOutfit(fields) {
 }
 
 export function updateOutfit(id, fields) {
-  return fetch(`/api/outfits/${id}`, {
+  return authFetch(`/api/outfits/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(fields),
@@ -73,7 +88,7 @@ export function updateOutfit(id, fields) {
 }
 
 export function deleteOutfit(id) {
-  return fetch(`/api/outfits/${id}`, { method: "DELETE" }).then(handleResponse);
+  return authFetch(`/api/outfits/${id}`, { method: "DELETE" }).then(handleResponse);
 }
 
 function buildFormData(fields) {

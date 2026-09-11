@@ -52,6 +52,10 @@ button {
   position: sticky;
   top: 0;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .app-logo {
@@ -60,6 +64,41 @@ button {
   letter-spacing: -0.02em;
   color: var(--color-text);
   text-decoration: none;
+}
+
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.header-auth-email {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.header-auth-logout {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.header-auth-logout:hover {
+  color: var(--color-text);
+}
+
+.login-view {
+  max-width: 360px;
+  margin: 40px auto 0;
 }
 
 .app-main {
