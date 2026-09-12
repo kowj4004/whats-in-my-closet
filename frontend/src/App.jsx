@@ -8,6 +8,8 @@ import OutfitListView from "./pages/OutfitListView.jsx";
 import OutfitDetail from "./pages/OutfitDetail.jsx";
 import Login from "./pages/Login.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
+import Settings from "./pages/Settings.jsx";
+import SharedCloset from "./pages/SharedCloset.jsx";
 
 function HeaderAuth() {
   const { user, signOut } = useAuth();
@@ -15,6 +17,9 @@ function HeaderAuth() {
   return (
     <div className="header-auth">
       <span className="header-auth-email">{user.email}</span>
+      <Link to="/settings" className="header-auth-settings">
+        설정
+      </Link>
       <button type="button" className="header-auth-logout" onClick={signOut}>
         로그아웃
       </button>
@@ -73,6 +78,22 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <OutfitDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shared/:email"
+              element={
+                <ProtectedRoute>
+                  <SharedCloset />
                 </ProtectedRoute>
               }
             />

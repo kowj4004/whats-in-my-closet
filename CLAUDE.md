@@ -115,6 +115,26 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
 - 기존 데이터(옷 3개)는 `scripts/migrate-categories-to-db.js`로 옛 문자열(top/bottom 등)을 새
   카테고리 행에 매핑해서 이전 완료.
 
+## 옷장 공유(열람 전용) (2026-09-12 도입)
+
+"SNS적 성격" 컨셉의 첫 조각. 로그인한 사람이 **다른 사람의 이메일을 알면** 그 사람이 공유를
+켜뒀을 때 옷장을 볼 수 있다 — 단, 완전 공개 인터넷 노출이 아니라 자기도 로그인은 돼 있어야 하고,
+상대 데이터는 절대 수정/삭제할 수 없다(그런 엔드포인트 자체가 없음, 구조적으로 불가능).
+
+- **DB**: `user_settings` 테이블(user_id PK, `sharing_enabled` bool, 기본 false).
+- **백엔드**: `routes/settings.js`(GET/PUT, 본인 설정만) + `routes/shared.js`(GET `/api/shared/:email`
+  하나뿐 — **쓰기 라우트가 아예 없다**는 게 "열람만 가능"의 실제 보장 수단). 이메일로
+  `auth.users`에서 대상 user_id를 찾고(우리 Postgres 연결이 postgres 역할이라 auth 스키마도
+  바로 조회 가능), `sharing_enabled`가 꺼져 있거나 이메일이 존재하지 않으면 **둘 다 같은 404**를
+  준다(이메일 존재 여부를 추측하지 못하게). 켜져 있으면 그 사람의 categories/clothes/outfits를
+  기존 store 함수에 대상 userId를 넘겨서 그대로 재사용해 반환한다.
+- **프론트**: `Settings.jsx`(공유 on/off 토글 + 이메일로 남의 옷장 보러가기 입력창),
+  `SharedCloset.jsx`(카테고리별로 그룹된 읽기 전용 그리드 — 일부러 `<Link>`가 아니라 `<div>`라
+  클릭해서 상세/수정 화면으로 못 들어간다). 헤더에 "설정" 링크 추가.
+- 실제 계정으로 토글 on/off, 존재하지 않는 이메일, 공유 꺼진 상태, 쓰기 시도(404 확인) 전부
+  API로 검증 후 UI로도 재확인함. **테스트하면서 `kowj4004@gmail.com` 계정의 공유를 켜둔 채로
+  마쳤다** — 원치 않으면 `/settings`에서 끌 것.
+
 ## 알아둬야 할 이슈 / 히스토리
 
 - **[로컬 개발 전용, 2026-09-12] Express 서버 안에서 AI 배경제거(`@imgly/background-removal-node`)를

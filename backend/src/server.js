@@ -9,6 +9,8 @@ import categoriesRouter from "./routes/categories.js";
 import clothesRouter from "./routes/clothes.js";
 import outfitsRouter from "./routes/outfits.js";
 import aiRouter from "./routes/ai.js";
+import settingsRouter from "./routes/settings.js";
+import sharedRouter from "./routes/shared.js";
 import { UPLOAD_DIR } from "./middleware/upload.js";
 import { runMigrations } from "./db/migrate.js";
 
@@ -37,6 +39,8 @@ app.use("/api/categories", categoriesRouter);
 app.use("/api/clothes", clothesRouter);
 app.use("/api/outfits", outfitsRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/settings", settingsRouter);
+app.use("/api/shared", sharedRouter);
 
 // 404 핸들러
 app.use("/api", (req, res) => {

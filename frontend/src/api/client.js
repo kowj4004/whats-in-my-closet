@@ -106,6 +106,24 @@ export function deleteOutfit(id) {
   return authFetch(`/api/outfits/${id}`, { method: "DELETE" }).then(handleResponse);
 }
 
+export function getSettings() {
+  return authFetch("/api/settings").then(handleResponse);
+}
+
+/** @param {object} fields { sharingEnabled } */
+export function updateSettings(fields) {
+  return authFetch("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(fields),
+  }).then(handleResponse);
+}
+
+/** 상대방이 공유를 켜뒀을 때만 그 사람의 옷장을 읽기 전용으로 가져온다. */
+export function getSharedCloset(email) {
+  return authFetch(`/api/shared/${encodeURIComponent(email)}`).then(handleResponse);
+}
+
 function buildFormData(fields) {
   const formData = new FormData();
   Object.entries(fields).forEach(([key, value]) => {
