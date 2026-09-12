@@ -79,12 +79,18 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
   공개 SELECT 허용하는 정책) — 지금의 Express 백엔드(postgres 역할)에는 영향 없지만, 나중에
   프론트가 Supabase를 직접 읽는 공개 피드를 만들 때를 대비한 사전 준비. `is_public`은 지금
   라우트에서 실제로 쓰이진 않음(전부 기본 비공개) — 공개/게시 기능 자체는 아직 미구현.
-- **기존 데이터**: 로그인 도입 전에 만들어진 옷 3개/코디 1개는 `user_id IS NULL`(주인 없음) 상태라
-  지금은 아무한테도 안 보인다. 사용자가 실제 계정으로 가입하면
-  `node scripts/assign-orphan-data-to-user.js <이메일>` (또는 `npm run assign:orphan-data --prefix backend -- <이메일>`)로
-  그 계정에 귀속시켜야 한다 — **다음 세션에서 아직 안 했으면 먼저 확인할 것.**
-- **배포**: Render에 새로 배포하려면 `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`를 Render 환경변수에도
-  추가해야 한다(Vite는 빌드 타임에 값을 번들에 박아넣으므로, 없으면 빌드는 되지만 로그인이 깨진다).
+- **기존 데이터 귀속 완료.** 로그인 전 데이터(옷 3개, 코디 1개)는 처음엔 `kowj4004@naver.com` 계정에
+  붙였다가, 사용자가 주 계정을 `kowj4004@gmail.com`으로 정하면서 그쪽으로 다시 옮겼다. naver 계정은
+  빈 채로 삭제함. **지금부터는 `kowj4004@gmail.com`이 유일한/주 계정이다.**
+- **배포**: Render 환경변수에 `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` 이미 추가되어 있음(Vite는
+  빌드 타임에 값을 번들에 박아넣으므로, 새 프론트 env 변수를 추가하면 Render에도 반영해야 함).
+- **커스텀 SMTP 연결 완료(Brevo)**: Supabase 기본 메일 발송기는 무료 티어 한도가 매우 낮아
+  (시간당 몇 통 수준, 프로젝트 전체 공용 한도) 테스트 중 자주 막혔다. Brevo 무료 SMTP로 교체함
+  (Supabase 대시보드 `/settings/auth` → SMTP Settings). **주의**: Brevo의 SMTP Username은 계정
+  이메일이 아니라 Brevo가 별도로 발급하는 `xxxxxxx@smtp-brevo.com` 형태의 값이다(SMTP & API 페이지에서
+  확인) — 계정 이메일을 Username에 넣으면 로그도 안 남기고 조용히 실패한다(Supabase 에러는
+  "Error sending recovery email"로만 뜸). 발신자 이메일(Sender email)은 naver.com 같은 프리메일
+  도메인은 DMARC 경고가 떠서 실패 가능성이 있어 `kowj4004@g.skku.edu`(학교 메일, DMARC 정상)로 설정함.
 
 ## 알아둬야 할 이슈 / 히스토리
 
