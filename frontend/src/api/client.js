@@ -24,13 +24,28 @@ async function handleResponse(res) {
   return data;
 }
 
-// 카테고리 목록은 로그인 여부와 무관한 고정 설정값이라 인증이 필요 없다.
+// 카테고리는 이제 사용자마다 직접 커스터마이징하는 데이터라 로그인이 필요하다.
 export function getCategories() {
-  return fetch("/api/categories").then(handleResponse);
+  return authFetch("/api/categories").then(handleResponse);
 }
 
-export function getClothes(category) {
-  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+/** @param {object} fields { name, parentId, imageFile } */
+export function createCategory(fields) {
+  const formData = buildFormData(fields);
+  return authFetch("/api/categories", { method: "POST", body: formData }).then(handleResponse);
+}
+
+export function updateCategory(id, fields) {
+  const formData = buildFormData(fields);
+  return authFetch(`/api/categories/${id}`, { method: "PUT", body: formData }).then(handleResponse);
+}
+
+export function deleteCategory(id) {
+  return authFetch(`/api/categories/${id}`, { method: "DELETE" }).then(handleResponse);
+}
+
+export function getClothes(categoryId) {
+  const query = categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : "";
   return authFetch(`/api/clothes${query}`).then(handleResponse);
 }
 
@@ -39,7 +54,7 @@ export function getCloth(id) {
 }
 
 /**
- * @param {object} fields { category, store, size, price, memo, imageFile }
+ * @param {object} fields { categoryId, store, size, price, memo, imageFile }
  */
 export function createCloth(fields) {
   const formData = buildFormData(fields);

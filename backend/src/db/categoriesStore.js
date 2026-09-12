@@ -1,20 +1,6 @@
-// 카테고리는 코드 수정 없이 categories.json 파일만 편집하면 추가/변경할 수 있도록
-// 별도 설정 파일로 분리한다. (예: { "id": "outer", "name": "아우터", "order": 4 } 추가)
+// 카테고리는 이제 사용자마다 자기 것을 커스터마이징하므로(이름 변경/추가/삭제/사진/세부카테고리),
+// 정적 파일 하나를 모두가 공유하던 예전 방식은 더 이상 의미가 없다 — 항상 Postgres를 사용한다.
+// (clothes/outfits와 달리 DATABASE_URL 없는 JSON 폴백은 지원하지 않는다: 로그인 없이는
+// "누구의 카테고리인지"가 정의되지 않기 때문.)
 
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CATEGORIES_FILE = path.join(__dirname, "..", "config", "categories.json");
-
-export async function listCategories() {
-  const raw = await fs.readFile(CATEGORIES_FILE, "utf-8");
-  const categories = JSON.parse(raw);
-  return categories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-}
-
-export async function getCategory(id) {
-  const categories = await listCategories();
-  return categories.find((c) => c.id === id) || null;
-}
+export * from "./pgCategoriesStore.js";

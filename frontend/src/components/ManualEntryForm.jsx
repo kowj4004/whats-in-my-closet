@@ -11,9 +11,12 @@ export default function ManualEntryForm({
   requireImage = true,
   aiNotice = "",
   submitLabel = "저장",
+  categoryId = "",
+  categoryChoices = [], // [{ id, name }] — 2개 이상일 때만 선택 UI를 보여준다
   onSubmit,
   onCancel,
 }) {
+  const [selectedCategoryId, setSelectedCategoryId] = useState(categoryId);
   const [store, setStore] = useState(initialValues.store || "");
   const [size, setSize] = useState(initialValues.size || "");
   const [price, setPrice] = useState(
@@ -50,6 +53,7 @@ export default function ManualEntryForm({
     setSubmitting(true);
     try {
       await onSubmit({
+        categoryId: selectedCategoryId || categoryId,
         store,
         size,
         price: price === "" ? "" : Number(price),
@@ -88,6 +92,19 @@ export default function ManualEntryForm({
           hidden
         />
       </div>
+
+      {categoryChoices.length > 1 && (
+        <label className="field">
+          <span className="field-label">카테고리</span>
+          <select value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
+            {categoryChoices.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="field">
         <span className="field-label">구매처</span>

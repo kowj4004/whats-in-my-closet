@@ -23,7 +23,7 @@ export default function OutfitBuilder({ initialName = "", initialSelection = {},
         if (cancelled) return;
         const grouped = {};
         for (const cloth of clothes) {
-          (grouped[cloth.category] ||= []).push(cloth);
+          (grouped[cloth.categoryId] ||= []).push(cloth);
         }
         setCategories(cats);
         setClothesByCategory(grouped);

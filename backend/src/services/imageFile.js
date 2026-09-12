@@ -4,6 +4,8 @@
 
 import fs from "fs/promises";
 import path from "path";
+import sharp from "sharp";
+import { randomUUID } from "crypto";
 import { processClothingImage } from "./ai/imageProcessor.js";
 import { uploadFile, deleteFile } from "./storage/index.js";
 
@@ -40,4 +42,16 @@ export async function finalizeUploadedImage(file) {
 /** image URL로부터 실제 파일을 삭제한다(로컬/Supabase 모두 지원). 존재하지 않아도 에러를 던지지 않는다. */
 export async function removeImageByUrl(imageUrl) {
   await deleteFile(imageUrl);
+}
+
+/**
+ * 카테고리 썸네일 이미지를 저장한다. 옷 사진과 달리 AI 배경 정리는 적용하지 않고
+ * (카테고리 아이콘은 옷 자체가 아닐 수도 있어서) 정사각형으로 리사이즈만 해서 저장소에 올린다.
+ */
+export async function finalizeCategoryImage(file) {
+  const buffer = await sharp(file.path).resize(400, 400, { fit: "cover" }).png().toBuffer();
+  const filename = `category-${randomUUID()}.png`;
+  const imageUrl = await uploadFile(buffer, filename, "image/png");
+  await fs.unlink(file.path).catch(() => {});
+  return imageUrl;
 }

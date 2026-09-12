@@ -3,11 +3,11 @@ import { createCloth } from "../api/client.js";
 import ManualEntryForm from "./ManualEntryForm.jsx";
 import CaptureOcrEntry from "./CaptureOcrEntry.jsx";
 
-export default function AddClothModal({ categoryId, onClose, onCreated }) {
+export default function AddClothModal({ categoryId, categoryChoices = [], onClose, onCreated }) {
   const [mode, setMode] = useState("manual"); // "manual" | "capture"
 
   async function handleCreate(fields) {
-    const result = await createCloth({ ...fields, category: categoryId });
+    const result = await createCloth(fields);
     onCreated(result.item);
     onClose();
   }
@@ -41,9 +41,21 @@ export default function AddClothModal({ categoryId, onClose, onCreated }) {
 
         <div className="modal-body">
           {mode === "manual" ? (
-            <ManualEntryForm requireImage submitLabel="등록하기" onSubmit={handleCreate} onCancel={onClose} />
+            <ManualEntryForm
+              requireImage
+              submitLabel="등록하기"
+              categoryId={categoryId}
+              categoryChoices={categoryChoices}
+              onSubmit={handleCreate}
+              onCancel={onClose}
+            />
           ) : (
-            <CaptureOcrEntry onSubmit={handleCreate} onCancel={onClose} />
+            <CaptureOcrEntry
+              categoryId={categoryId}
+              categoryChoices={categoryChoices}
+              onSubmit={handleCreate}
+              onCancel={onClose}
+            />
           )}
         </div>
       </div>

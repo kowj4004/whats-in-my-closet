@@ -51,6 +51,39 @@ export async function runMigrations() {
 
     DROP POLICY IF EXISTS outfits_public_read ON outfits;
     CREATE POLICY outfits_public_read ON outfits FOR SELECT USING (is_public = true);
+
+    -- 카테고리 커스터마이징: 더 이상 전역 categories.json 하나를 모두가 공유하지 않고,
+    -- 사용자마다 자기 카테고리를 만들고 이름/사진을 바꾸고 세부카테고리(자기참조 parent_id)를
+    -- 둘 수 있게 한다. 세부카테고리도 그냥 parent_id가 채워진 category row일 뿐이라 테이블이 하나로 충분하다.
+    CREATE TABLE IF NOT EXISTS categories (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+      parent_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      image TEXT NOT NULL DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS categories_user_id_idx ON categories(user_id);
+    CREATE INDEX IF NOT EXISTS categories_parent_id_idx ON categories(parent_id);
+
+    -- 옷은 이제 "top" 같은 고정 문자열이 아니라 실제 categories 행(최상위 카테고리 또는
+    -- 세부카테고리 둘 다 가능)을 가리킨다. 기존 문자열 category 컬럼은 과거 데이터 이전용으로
+    -- 잠시 남겨두고, 이전이 끝나면 이후 커밋에서 제거한다.
+    ALTER TABLE clothes ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES categories(id) ON DELETE SET NULL;
+    CREATE INDEX IF NOT EXISTS clothes_category_id_idx ON clothes(category_id);
+
+    -- 공유 기능: 계정 단위 on/off 토글 + (나중에 필요하면 확장할) 설정들을 위한 자리.
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+      sharing_enabled BOOLEAN NOT NULL DEFAULT false,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- 예전 "top/bottom/accessory/shoes" 고정 문자열 컬럼은 scripts/migrate-categories-to-db.js로
+    -- category_id 이전이 끝났으므로 더 이상 필요 없다.
+    ALTER TABLE clothes DROP COLUMN IF EXISTS category;
   `);
 
   console.log("[db] Postgres 마이그레이션 확인 완료");

@@ -92,8 +92,40 @@ frontend/src/api/client.js           백엔드 호출은 전부 이 파일을 �
   "Error sending recovery email"로만 뜸). 발신자 이메일(Sender email)은 naver.com 같은 프리메일
   도메인은 DMARC 경고가 떠서 실패 가능성이 있어 `kowj4004@g.skku.edu`(학교 메일, DMARC 정상)로 설정함.
 
+## 카테고리 커스터마이징 (2026-09-12 도입)
+
+전역 `categories.json`(모두가 공유하는 상의/하의/악세사리/신발 4개 고정) 방식을 완전히 버리고,
+사용자마다 자기 카테고리를 이름 변경/추가/삭제하고 사진을 넣고 세부카테고리(2단계까지)를 만들 수
+있게 DB 기반으로 바꿨다.
+
+- **스키마**: `categories` 테이블 하나로 최상위/세부카테고리를 둘 다 표현한다 — 세부카테고리는
+  그냥 `parent_id`가 채워진 category row일 뿐, 별도 테이블이 아니다(`pgCategoriesStore.js`).
+  `clothes.category_id`가 이 테이블을 가리킨다(예전의 `category` TEXT 컬럼은 제거함). 새 계정은
+  `GET /api/categories` 호출 시 카테고리가 0개면 기본 4개(상의/하의/악세사리/신발)를 자동으로
+  만들어준다(`ensureDefaultCategories`).
+- **옷 목록 조회**: `GET /api/clothes?categoryId=X`를 최상위 카테고리로 호출하면 그 세부카테고리에
+  속한 옷들도 같이 보여준다(`getCategoryIdsIncludingChildren`으로 자기+자식 id를 모아서 필터).
+  세부카테고리 id로 직접 호출하면 그 세부카테고리 것만 나온다.
+- **카테고리 삭제**: 자신 또는 세부카테고리에 옷이 하나라도 있으면 막는다(먼저 옷을 옮기거나
+  지워야 함) — 데이터 유실 방지.
+- **프론트**: `CategoryFormModal`(카테고리/세부카테고리 생성·수정 공용) 하나로 Home(최상위)과
+  CategoryView(세부카테고리) 양쪽에서 재사용. `CategoryView`의 세부카테고리 칩("전체" + 각 이름)은
+  API를 다시 안 부르고 이미 받아온 옷 목록을 클라이언트에서 필터링한다. 옷 등록 시 세부카테고리가
+  있으면 `ManualEntryForm`에 카테고리 선택 `<select>`가 자동으로 뜬다(`categoryChoices` prop).
+- 기존 데이터(옷 3개)는 `scripts/migrate-categories-to-db.js`로 옛 문자열(top/bottom 등)을 새
+  카테고리 행에 매핑해서 이전 완료.
+
 ## 알아둬야 할 이슈 / 히스토리
 
+- **[로컬 개발 전용, 2026-09-12] Express 서버 안에서 AI 배경제거(`@imgly/background-removal-node`)를
+  돌리면 이 Windows 개발 환경에서 네이티브 크래시가 난다** (`GLib-GObject-CRITICAL: invalid unclassed
+  type`로 시작해서 서버 프로세스가 죽음). 같은 함수를 `node -e`로 standalone 실행하면 멀쩡하고,
+  `AI_IMAGE_PROVIDER=noop`으로 두면 서버도 정상 동작한다 — 즉 Express 요청 컨텍스트(멀티파트
+  업로드 + sharp + onnxruntime 조합) 안에서만 재현된다. Render는 Linux라 영향 없을 가능성이 높고
+  실제로 프로덕션에서는 계속 정상 동작해왔다. **원인 미확정** — 오늘 새로 설치한 `pg`/`nodemailer`
+  같은 네이티브 의존성과의 DLL 충돌이 의심되지만 확인 전. 지금 로컬 `.env`는 `AI_IMAGE_PROVIDER=noop`로
+  임시 전환해둔 상태 — 다음 세션에서 원인 조사하거나, 급하지 않으면 그냥 이 상태로 로컬 개발 계속해도 됨
+  (실제 배포본 `.env`/Render 환경변수는 안 건드렸으니 프로덕션은 여전히 `local`).
 - Gemini 이미지 생성 모델(`gemini-2.5-flash-image`)은 무료 티어 할당량 0 문제로 결국 로컬 오픈소스
   모델로 완전히 대체했다(아래 "Gemini 의존도 제거" 절 참고). `AI_IMAGE_PROVIDER=local`이 현재 기본값.
 - **Gemini 텍스트 모델은 자주 deprecate된다.** 이미 한 번 `gemini-2.0-flash` → `gemini-3.6-flash`로

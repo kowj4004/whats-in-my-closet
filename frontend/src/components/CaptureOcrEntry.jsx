@@ -8,7 +8,7 @@ import ManualEntryForm from "./ManualEntryForm.jsx";
  * 2단계: 분석 결과(구매처/사이즈/가격/메모)를 ManualEntryForm에 프리필하여
  *        사용자가 확인/수정한 뒤에만 실제로 저장한다 (AI 결과를 바로 확정하지 않음).
  */
-export default function CaptureOcrEntry({ onSubmit, onCancel }) {
+export default function CaptureOcrEntry({ categoryId, categoryChoices, onSubmit, onCancel }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -60,6 +60,8 @@ export default function CaptureOcrEntry({ onSubmit, onCancel }) {
         requireImage
         aiNotice={analysis.message}
         submitLabel="확인하고 등록하기"
+        categoryId={categoryId}
+        categoryChoices={categoryChoices}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />

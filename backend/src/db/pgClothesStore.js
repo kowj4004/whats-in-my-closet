@@ -1,5 +1,5 @@
 // jsonClothesStore.js와 동일한 인터페이스를 Postgres(Supabase)로 구현한 버전.
-// "코어" 필드(category/image/store/size/price/memo) 외에 들어오는 값은
+// "코어" 필드(categoryId/image/store/size/price/memo) 외에 들어오는 값은
 // extra(JSONB)에 저장했다가 조회 시 다시 펼쳐서 돌려준다(JSON 파일 버전의 자유 필드 허용과 동일하게).
 //
 // 모든 조회/수정/삭제는 user_id로 스코프된다 — 로그인한 사용자는 자기 옷만 보고 건드릴 수 있다.
@@ -7,7 +7,7 @@
 
 import { getPool } from "./postgresPool.js";
 
-const CORE_FIELDS = ["category", "image", "store", "size", "price", "memo"];
+const CORE_FIELDS = ["categoryId", "image", "store", "size", "price", "memo"];
 
 function splitFields(data) {
   const core = {};
@@ -23,7 +23,7 @@ function rowToItem(row) {
   return {
     id: row.id,
     userId: row.user_id,
-    category: row.category,
+    categoryId: row.category_id,
     image: row.image,
     store: row.store,
     size: row.size,
@@ -36,12 +36,13 @@ function rowToItem(row) {
   };
 }
 
-export async function listClothes({ category, userId } = {}) {
+/** @param {{ categoryIds?: string[], userId: string }} opts categoryIds가 있으면 그 카테고리(들)에 속한 옷만. */
+export async function listClothes({ categoryIds, userId } = {}) {
   const pool = getPool();
-  const { rows } = category
+  const { rows } = categoryIds && categoryIds.length > 0
     ? await pool.query(
-        "SELECT * FROM clothes WHERE user_id = $1 AND category = $2 ORDER BY created_at DESC",
-        [userId, category]
+        "SELECT * FROM clothes WHERE user_id = $1 AND category_id = ANY($2::uuid[]) ORDER BY created_at DESC",
+        [userId, categoryIds]
       )
     : await pool.query("SELECT * FROM clothes WHERE user_id = $1 ORDER BY created_at DESC", [userId]);
   return rows.map(rowToItem);
@@ -57,12 +58,12 @@ export async function createCloth(data) {
   const pool = getPool();
   const { core, extra } = splitFields(data);
   const { rows } = await pool.query(
-    `INSERT INTO clothes (id, user_id, category, image, store, size, price, memo, extra, created_at, updated_at)
+    `INSERT INTO clothes (id, user_id, category_id, image, store, size, price, memo, extra, created_at, updated_at)
      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, now(), now())
      RETURNING *`,
     [
       data.userId,
-      core.category,
+      core.categoryId,
       core.image || "",
       core.store || "",
       core.size || "",
@@ -82,10 +83,10 @@ export async function updateCloth(id, patch, userId) {
   const merged = { ...existing, ...patch };
   const { core, extra } = splitFields(merged);
   const { rows } = await pool.query(
-    `UPDATE clothes SET category = $3, image = $4, store = $5, size = $6, price = $7, memo = $8, extra = $9, updated_at = now()
+    `UPDATE clothes SET category_id = $3, image = $4, store = $5, size = $6, price = $7, memo = $8, extra = $9, updated_at = now()
      WHERE id = $1 AND user_id = $2
      RETURNING *`,
-    [id, userId, core.category, core.image || "", core.store || "", core.size || "", core.price ?? null, core.memo || "", extra]
+    [id, userId, core.categoryId, core.image || "", core.store || "", core.size || "", core.price ?? null, core.memo || "", extra]
   );
   return rows[0] ? rowToItem(rows[0]) : null;
 }

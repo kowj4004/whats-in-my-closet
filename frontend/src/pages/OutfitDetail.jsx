@@ -43,7 +43,7 @@ export default function OutfitDetail() {
   if (error) return <p className="state-text state-error">{error}</p>;
   if (!outfit) return <p className="state-text">코디를 찾을 수 없습니다.</p>;
 
-  const initialSelection = Object.fromEntries(outfit.items.map((item) => [item.category, item.id]));
+  const initialSelection = Object.fromEntries(outfit.items.map((item) => [item.categoryId, item.id]));
 
   return (
     <div className="cloth-detail">
@@ -74,7 +74,7 @@ export default function OutfitDetail() {
             {outfit.items.map((item) => (
               <Link
                 key={item.id}
-                to={`/category/${item.category}/cloth/${item.id}`}
+                to={`/category/${item.categoryId}/cloth/${item.id}`}
                 className="cloth-card"
               >
                 <div className="cloth-card-image-wrap">

@@ -1,6 +1,0 @@
-[
-  { "id": "top", "name": "상의", "order": 1 },
-  { "id": "bottom", "name": "하의", "order": 2 },
-  { "id": "accessory", "name": "악세사리", "order": 3 },
-  { "id": "shoes", "name": "신발", "order": 4 }
-]
